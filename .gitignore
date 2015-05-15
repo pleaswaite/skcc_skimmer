@@ -45,3 +45,10 @@ Temporary Items
 *.adi
 
 QSOs
+
+*.log
+*.out
+*.txt
+
+ServerDev
+skcc_skimmer
