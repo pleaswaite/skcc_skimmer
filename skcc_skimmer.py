@@ -30,7 +30,7 @@
 #
 # skcc_skimmer.py 
 #
-# Version 3.5.2, May 13, 2015
+# Version 3.5.2, May 14, 2015
 # 
 # A program that uses the Reverse Beacon Network (RBN)
 # to locate unique, unworked SKCC members for the purpose of 
