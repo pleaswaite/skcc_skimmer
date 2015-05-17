@@ -512,7 +512,7 @@ class cRBN_Filter(cRBN_Client):
     SpottedNearby = Spotter in SPOTTERS_NEARBY
   
     if SpottedNearby or CallSign == MY_CALLSIGN:
-      if Spotter in Spotters:
+      if Spotter in Spotters.Spotters:
         Miles = Spotters.GetDistance(Spotter)
         Report.append('by {}({}mi, {}dB)'.format(Spotter, Miles, int(dB)))
       else:
