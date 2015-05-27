@@ -30,7 +30,7 @@
 #
 # skcc_skimmer.py 
 #
-# Version 3.5.2, May 17, 2015
+# Version 3.5.3, May 24, 2015
 # 
 # A program that uses the Reverse Beacon Network (RBN)
 # to locate unique, unworked SKCC members for the purpose of 
@@ -329,7 +329,7 @@ class cSked(cStateMachine):
         Now = time.time()
         DeltaSeconds = max(int(Now - StartTime), 1)
 
-        if DeltaSeconds > 60 * 60:
+        if DeltaSeconds > SPOT_PERSISTENCE_MINUTES * 60:
           del RBN.LastSpotted[CallSign]
         elif DeltaSeconds > 60:
           DeltaMinutes = DeltaSeconds // 60
@@ -1354,7 +1354,7 @@ class cSpotters:
 
     return d
     
-  def GetOnlineSpotters(self):
+  def GetSpotters(self):
     def ParseBands(BandString):
       # Each band ends with an 'm'.
      
@@ -1893,7 +1893,7 @@ def FileCheck(Filename):
 # Main
 # 
 
-VERSION = '3.5.2'
+VERSION = '3.5.3'
 
 print('SKCC Skimmer Version {}\n'.format(VERSION))
 
@@ -1955,6 +1955,9 @@ if 'SkedStatusCriteria' in globals():
 if 'SERVER' in globals():
   print('SERVER is no longer supported.')
   sys.exit(16)
+
+if 'SPOT_PERSISTENCE_MINUTES' not in globals():
+  SPOT_PERSISTENCE_MINUTES = 15
 
 if 'GOAL' in globals():
   print("'GOAL' has been replaced with 'GOALS' and has a different syntax and meaning.")
@@ -2188,7 +2191,7 @@ if not isinstance(SPOTTER_RADIUS, (int, )):
   sys.exit(16)
 
 Spotters = cSpotters()
-Spotters.GetOnlineSpotters()
+Spotters.GetSpotters()
 
 NearbyList = Spotters.GetNearbySpotters()
 SpotterList = ['{}({}mi)'.format(Spotter, Miles) for Spotter, Miles in NearbyList]
