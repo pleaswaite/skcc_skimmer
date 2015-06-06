@@ -30,7 +30,7 @@
 #
 # skcc_skimmer.py 
 #
-# Version 3.5.3, May 24, 2015
+# Version 3.5.4, June 5, 2015
 # 
 # A program that uses the Reverse Beacon Network (RBN)
 # to locate unique, unworked SKCC members for the purpose of 
@@ -826,8 +826,13 @@ class cQSO(cStateMachine):
     print('')
 
     PrintRemaining('C', len(self.ContactsForC))
-    PrintRemaining('T', len(self.ContactsForT))
-    PrintRemaining('S', len(self.ContactsForS))
+
+    if QSOs.MyC_Date:
+      PrintRemaining('T', len(self.ContactsForT))
+
+    if QSOs.MyTX8_Date:
+      PrintRemaining('S', len(self.ContactsForS))
+
     PrintRemaining('P', self.CalcPrefixPoints())
 
     def RemainingStates(Class, QSOs):
@@ -1170,7 +1175,10 @@ class cQSO(cStateMachine):
       with open('{}/{}-BRAG.txt'.format(QSOs_Dir, MY_CALLSIGN), 'w') as File:
         for Count, (QsoDate, TheirMemberNumber, MainCallSign, QsoFreq) in enumerate(QSOs):
           Date = '{}-{}-{}'.format(QsoDate[0:4], QsoDate[4:6], QsoDate[6:8])
-          File.write('{:<4} {}  {:<6}  {}  {:.3f}\n'.format(Count+1, Date, TheirMemberNumber, MainCallSign, QsoFreq / 1000))
+          if QsoFreq:
+            File.write('{:<4} {}  {:<6}  {}  {:.3f}\n'.format(Count+1, Date, TheirMemberNumber, MainCallSign, QsoFreq / 1000))
+          else:
+            File.write('{:<4} {}  {:<6}  {}\n'.format(Count+1, Date, TheirMemberNumber, MainCallSign))
       
     QSOs_Dir = 'QSOs'
     if not os.path.exists(QSOs_Dir):
@@ -1893,7 +1901,7 @@ def FileCheck(Filename):
 # Main
 # 
 
-VERSION = '3.5.3'
+VERSION = '3.5.4'
 
 print('SKCC Skimmer Version {}\n'.format(VERSION))
 
@@ -2174,8 +2182,8 @@ for Condition in BeepCondition:
     sys.exit(16)
 
 
-if 'MY_GRIDSQUARE' not in globals():
-  print("'MY_GRIDSQUARE' must be defined in skcc_skimmer.cfg.")
+if 'MY_GRIDSQUARE' not in globals() or not MY_GRIDSQUARE:
+  print("'MY_GRIDSQUARE' must be specified in skcc_skimmer.cfg or on the command line.")
   sys.exit(16)
 
 if not MY_GRIDSQUARE:
