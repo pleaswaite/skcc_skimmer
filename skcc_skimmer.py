@@ -30,7 +30,7 @@
 #
 # skcc_skimmer.py 
 #
-# Version 3.5.4, June 5, 2015
+# Version 3.5.6, July 16, 2015
 # 
 # A program that uses the Reverse Beacon Network (RBN)
 # to locate unique, unworked SKCC members for the purpose of 
@@ -1901,7 +1901,7 @@ def FileCheck(Filename):
 # Main
 # 
 
-VERSION = '3.5.4'
+VERSION = '3.5.6'
 
 print('SKCC Skimmer Version {}\n'.format(VERSION))
 

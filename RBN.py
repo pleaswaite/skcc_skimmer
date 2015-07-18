@@ -35,7 +35,7 @@ import time
 from MJG import cSocketLoop 
 from MJG import cStateMachine
 
-K7MJG_EXTERNAL_IP = '68.99.90.75'
+K7MJG_EXTERNAL_IP = 'skimmer.k7mjg.com'
 K7MJG_INTERNAL_IP = '192.168.0.100'
 
 MASTER_BASE = 50000
