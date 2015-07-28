@@ -30,7 +30,7 @@
 #
 # skcc_skimmer.py 
 #
-# Version 3.5.6, July 16, 2015
+# Version 3.5.7, July 28, 2015
 # 
 # A program that uses the Reverse Beacon Network (RBN)
 # to locate unique, unworked SKCC members for the purpose of 
@@ -1035,6 +1035,72 @@ class cQSO(cStateMachine):
     QSOs.GetGoalQSOs()
     self.PrintProgress()
 
+  def GetBragQSOs(self, PrevMonth=0, Print=False):
+    self.Brag = {}
+
+    DateOfInterestGMT = cFastDateTime.NowGMT()
+
+    if PrevMonth > 0:
+      Year, Month, Day, Hour, Minute, Second = DateOfInterestGMT.SplitDateTime()
+
+      YearsBack  = int(PrevMonth  / 12)
+      MonthsBack = PrevMonth % 12
+
+      Year  -= YearsBack
+      Month -= MonthsBack      
+
+      if Month <= 0:
+        Year  -= 1
+        Month += 12
+
+      DateOfInterestGMT = cFastDateTime((Year, Month, Day))
+
+    fastStartOfMonth = DateOfInterestGMT.StartOfMonth()
+    fastEndOfMonth   = DateOfInterestGMT.EndOfMonth()
+
+    for Contact in self.QSOs:
+      QsoDate, QsoCallSign, QsoSPC, QsoFreq = Contact
+
+      if QsoCallSign in ('K9SKC', 'K3Y'):
+        continue
+
+      QsoCallSign = SKCC.ExtractCallSign(QsoCallSign)
+
+      if not QsoCallSign:
+        continue
+
+      MainCallSign = SKCC.Members[QsoCallSign]['main_call']
+
+      TheirMemberEntry  = SKCC.Members[MainCallSign]
+      TheirMemberNumber = TheirMemberEntry['plain_number']
+
+      fastQsoDate = cFastDateTime(QsoDate)
+
+      if fastStartOfMonth < fastQsoDate < fastEndOfMonth:
+        DuringSprint = cSKCC.DuringSprint(fastQsoDate)
+
+        if not QsoFreq:
+          continue
+
+        OnWarcFreq   = cSKCC.IsOnWarcFrequency(QsoFreq)
+
+        BragOkay = OnWarcFreq or (not DuringSprint)
+  
+        #print(BragOkay, DuringSprint, OnWarcFreq, QsoFreq, QsoDate)
+
+        if TheirMemberNumber not in self.Brag and BragOkay:
+          self.Brag[TheirMemberNumber] = (QsoDate, TheirMemberNumber, MainCallSign, QsoFreq)
+          #print('Brag contact: {} on {} {}'.format(QsoCallSign, QsoDate, QsoFreq))
+        else:
+          #print('Not brag eligible: {} on {}  {}  warc: {}  sprint: {}'.format(QsoCallSign, QsoDate, QsoFreq, OnWarcFreq, DuringSprint))
+          pass
+
+    if Print == True and 'BRAG' in GOALS:
+      Year = DateOfInterestGMT.Year()
+      MonthIndex = DateOfInterestGMT.Month()-1
+      MonthAbbrev = cFastDateTime.MonthNames[MonthIndex][:3]
+      print('Total Brag contacts in {} {}: {}'.format(MonthAbbrev, Year, len(self.Brag)))
+
   def GetGoalQSOs(self):
     def Good(QsoDate, MemberDate, MyDate, EligibleDate = None):
       if MemberDate == '' or MyDate == '':
@@ -1045,7 +1111,6 @@ class cQSO(cStateMachine):
 
       return QsoDate >= MemberDate and QsoDate >= MyDate
     
-    self.Brag             = {}
     self.ContactsForC     = {}
     self.ContactsForT     = {}
     self.ContactsForS     = {}
@@ -1056,6 +1121,10 @@ class cQSO(cStateMachine):
     TodayGMT = cFastDateTime.NowGMT()
     fastStartOfMonth = TodayGMT.StartOfMonth()
     fastEndOfMonth   = TodayGMT.EndOfMonth()
+
+    if 'BRAG_MONTHS' in globals() and 'BRAG' in GOALS:
+      for PrevMonth in range( abs(BRAG_MONTHS), 0, -1 ):
+        QSOs.GetBragQSOs( PrevMonth = PrevMonth, Print=True )
 
     for Contact in self.QSOs:
       QsoDate, QsoCallSign, QsoSPC, QsoFreq = Contact
@@ -1078,22 +1147,6 @@ class cQSO(cStateMachine):
       TheirMemberNumber = TheirMemberEntry['plain_number']
 
       fastQsoDate = cFastDateTime(QsoDate)
-
-      # Brag
-      if fastStartOfMonth < fastQsoDate < fastEndOfMonth:
-        DuringSprint = cSKCC.DuringSprint(fastQsoDate)
-        OnWarcFreq   = cSKCC.IsOnWarcFrequency(QsoFreq)
-
-        BragOkay = OnWarcFreq or (not DuringSprint)
-  
-        #print(BragOkay, DuringSprint, OnWarcFreq, QsoFreq, QsoDate)
-
-        if TheirMemberNumber not in self.Brag and BragOkay:
-          self.Brag[TheirMemberNumber] = (QsoDate, TheirMemberNumber, MainCallSign, QsoFreq)
-          #print('Brag contact: {} on {} {}'.format(QsoCallSign, QsoDate, QsoFreq))
-        else:
-          #print('Not brag eligible: {} on {}  {}'.format(QsoCallSign, QsoDate, QsoFreq))
-          pass
 
       # Prefix
       if Good(QsoDate, TheirJoin_Date, self.MyJoin_Date, '20130101000000'):
@@ -1860,6 +1913,7 @@ def Usage():
   print('   skcc_skimmer.py')
   print('                   [--adi <adi-file>]')
   print('                   [--bands <comma-separated-bands>]')
+  print('                   [--brag-months <number-of-months-back>]')
   print('                   [--callsign <your-callsign>]')
   print('                   [--goals <goals>]')
   print('                   [--help]')
@@ -1901,7 +1955,7 @@ def FileCheck(Filename):
 # Main
 # 
 
-VERSION = '3.5.6'
+VERSION = '3.5.7'
 
 print('SKCC Skimmer Version {}\n'.format(VERSION))
 
@@ -2038,8 +2092,8 @@ Levels = {
 ArgV = sys.argv[1:]
 
 try:
-  Options, Args = getopt.getopt(ArgV, 'ivht:c:a:g:l:m:r:n:b:', \
-      'radius notification interactive help maidenhead= callsign= adi= goals= targets= verbose lookup= bands='.split())
+  Options, Args = getopt.getopt(ArgV, 'ivht:c:a:g:l:m:r:n:b:B:', \
+      'radius notification interactive help maidenhead= callsign= adi= goals= targets= verbose lookup= bands= brag-months='.split())
 except getopt.GetoptError as e:
   print(e)
   Usage()
@@ -2060,6 +2114,9 @@ for Option, Arg in Options:
 
   elif Option in ('-b', '--bands'):
     BANDS = Arg
+
+  elif Option in ('-B', '--brag-months'):
+    BRAG_MONTHS = int(Arg)
 
   elif Option in ('-c', '--callsign'):
     MY_CALLSIGN = Arg.upper()
