@@ -30,7 +30,7 @@
 #
 # skcc_skimmer.py 
 #
-# Version 3.5.7, July 28, 2015
+# Version 3.5.9, August 16, 2015
 # 
 # A program that uses the Reverse Beacon Network (RBN)
 # to locate unique, unworked SKCC members for the purpose of 
@@ -39,6 +39,8 @@
 
 #
 # Contact: mark@k7mjg.com
+#
+# Code and bug fix contributions by Jim, NM1W and Mark, NX1K.
 #
 
 #
@@ -86,6 +88,7 @@ import os
 import socket
 import re
 import getopt
+import string
 import textwrap
 import datetime
 import calendar
@@ -1125,7 +1128,8 @@ class cQSO(cStateMachine):
     if 'BRAG_MONTHS' in globals() and 'BRAG' in GOALS:
       for PrevMonth in range( abs(BRAG_MONTHS), 0, -1 ):
         QSOs.GetBragQSOs( PrevMonth = PrevMonth, Print=True )
-
+    # MWS - Process current month as well.
+    QSOs.GetBragQSOs(PrevMonth=0, Print=False)
     for Contact in self.QSOs:
       QsoDate, QsoCallSign, QsoSPC, QsoFreq = Contact
 
@@ -1603,6 +1607,11 @@ class cSKCC:
     return '{:0>4}{:0>2}{:0>2}000000'.format(sYear, iMonth, sDay)
 
   def ExtractCallSign(self, CallSign):
+    #
+    # Strip any punctuation other than '/'.
+    # 
+    CallSign = CallSign.strip(string.punctuation.strip('/'))
+
     if '/' in CallSign:
       if CallSign in self.Members:
         return CallSign
@@ -1955,7 +1964,7 @@ def FileCheck(Filename):
 # Main
 # 
 
-VERSION = '3.5.7'
+VERSION = '3.5.9'
 
 print('SKCC Skimmer Version {}\n'.format(VERSION))
 
