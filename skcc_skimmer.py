@@ -30,7 +30,7 @@
 #
 # skcc_skimmer.py 
 #
-# Version 3.5.9, August 16, 2015
+# Version 3.5.10, January 1, 2016
 # 
 # A program that uses the Reverse Beacon Network (RBN)
 # to locate unique, unworked SKCC members for the purpose of 
@@ -1423,7 +1423,7 @@ class cSpotters:
     def ParseBands(BandString):
       # Each band ends with an 'm'.
      
-      BandList = [int(x[:-1]) for x in BandString.split(',') if x.endswith('m')]
+      BandList = [int(x[:-1]) for x in BandString.split(',') if x in '160m 80m 60m 40m 30m 20m 17m 15m 12m 10m 6m'.split()]
       return BandList
 
     print('')
@@ -1964,7 +1964,7 @@ def FileCheck(Filename):
 # Main
 # 
 
-VERSION = '3.5.9'
+VERSION = '3.5.10'
 
 print('SKCC Skimmer Version {}\n'.format(VERSION))
 
