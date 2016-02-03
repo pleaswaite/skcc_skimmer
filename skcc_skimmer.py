@@ -3,7 +3,7 @@
 
    The MIT License (MIT)
 
-   Copyright (c) 2015 Mark J Glenn
+   Copyright (c) 2015-2016 Mark J Glenn
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 #
 # skcc_skimmer.py 
 #
-# Version 3.5.10, January 1, 2016
+# Version 3.5.11, February 2, 2016
 # 
 # A program that uses the Reverse Beacon Network (RBN)
 # to locate unique, unworked SKCC members for the purpose of 
@@ -41,6 +41,8 @@
 # Contact: mark@k7mjg.com
 #
 # Code and bug fix contributions by Jim, NM1W and Mark, NX1K.
+#
+# WAS-T and WAS-C changes contributed by Nick, KC0MYW.
 #
 
 #
@@ -58,7 +60,7 @@
 #
 #       The ADI file is required unless you've specified ADI_FILE in the skcc_skimmer.cfg file.
 #
-#       GoalString: Any or all of: C,T,S,CXN,TXN,SXN,WAS,WAS-C,ALL,NONE. 
+#       GoalString: Any or all of: C,T,S,CXN,TXN,SXN,WAS,WAS-C,WAS-T,WAS-S,ALL,NONE. 
 #
 #       TargetString: Any or all of: C,T,S,CXN,TXN,SXN,ALL,NONE. 
 #
@@ -617,6 +619,8 @@ class cQSO(cStateMachine):
     self.ContactsForS       = {}
     self.ContactsForWAS     = {}
     self.ContactsForWAS_C   = {}
+    self.ContactsForWAS_T   = {}
+    self.ContactsForWAS_S   = {}
     self.ContactsForP       = {}
     self.QSOsByMemberNumber = {}
 
@@ -700,7 +704,7 @@ class cQSO(cStateMachine):
       if S_Level == 1 and self.MyMemberNumber not in SKCC.SenatorLevel:
         print('FYI: You qualify for S but have not yet applied for it.')
 
-    ### WAS and WAS-C ###
+    ### WAS and WAS-C and WAS-T and WAS-S ###
     
     if 'WAS' in GOALS:
       if len(self.ContactsForWAS) == len(US_STATES) and MY_CALLSIGN not in SKCC.WasLevel:
@@ -709,6 +713,14 @@ class cQSO(cStateMachine):
     if 'WAS-C' in GOALS:
       if len(self.ContactsForWAS_C) == len(US_STATES) and MY_CALLSIGN not in SKCC.WasCLevel:
         print('FYI: You qualify for WAS-C but have not yet applied for it.')
+
+    if 'WAS-T' in GOALS:
+      if len(self.ContactsForWAS_T) == len(US_STATES) and MY_CALLSIGN not in SKCC.WasTLevel:
+        print('FYI: You qualify for WAS-T but have not yet applied for it.')
+
+    if 'WAS-S' in GOALS:
+      if len(self.ContactsForWAS_S) == len(US_STATES) and MY_CALLSIGN not in SKCC.WasSLevel:
+        print('FYI: You qualify for WAS-S but have not yet applied for it.')
 
     if 'P' in GOALS:
       if MY_CALLSIGN in SKCC.PrefixLevel:
@@ -857,6 +869,12 @@ class cQSO(cStateMachine):
     if 'WAS-C' in GOALS:
       RemainingStates('WAS-C', self.ContactsForWAS_C)
 
+    if 'WAS-T' in GOALS:
+      RemainingStates('WAS-T', self.ContactsForWAS_T)
+
+    if 'WAS-S' in GOALS:
+      RemainingStates('WAS-S', self.ContactsForWAS_S)
+
     if 'BRAG' in GOALS:
       NowGMT = cFastDateTime.NowGMT()
       MonthIndex = NowGMT.Month()-1
@@ -873,6 +891,7 @@ class cQSO(cStateMachine):
     TheirMemberEntry  = SKCC.Members[TheirCallSign]
     TheirC_Date       = Effective(TheirMemberEntry['c_date'])
     TheirT_Date       = Effective(TheirMemberEntry['t_date'])
+    TheirS_Date       = Effective(TheirMemberEntry['s_date'])
     TheirMemberNumber = TheirMemberEntry['plain_number']
 
     List = []
@@ -928,6 +947,18 @@ class cQSO(cStateMachine):
         SPC = TheirMemberEntry['spc']
         if SPC in US_STATES and SPC not in self.ContactsForWAS_C:
           List.append('WAS-C')
+
+    if 'WAS-T' in GOALS:
+      if TheirT_Date:
+        SPC = TheirMemberEntry['spc']
+        if SPC in US_STATES and SPC not in self.ContactsForWAS_T:
+          List.append('WAS-T')
+
+    if 'WAS-S' in GOALS:
+      if TheirS_Date:
+        SPC = TheirMemberEntry['spc']
+        if SPC in US_STATES and SPC not in self.ContactsForWAS_S:
+          List.append('WAS-S')
 
     if 'P' in GOALS:
       Match = cQSO.Prefix_RegEx.match(TheirCallSign)
@@ -1119,6 +1150,8 @@ class cQSO(cStateMachine):
     self.ContactsForS     = {}
     self.ContactsForWAS   = {}
     self.ContactsForWAS_C = {}
+    self.ContactsForWAS_T = {}
+    self.ContactsForWAS_S = {}
     self.ContactsForP     = {}
 
     TodayGMT = cFastDateTime.NowGMT()
@@ -1147,6 +1180,7 @@ class cQSO(cStateMachine):
       TheirJoin_Date    = Effective(TheirMemberEntry['join_date'])
       TheirC_Date       = Effective(TheirMemberEntry['c_date'])
       TheirT_Date       = Effective(TheirMemberEntry['t_date'])
+      TheirS_Date       = Effective(TheirMemberEntry['s_date'])
 
       TheirMemberNumber = TheirMemberEntry['plain_number']
 
@@ -1185,11 +1219,23 @@ class cQSO(cStateMachine):
           if QsoSPC not in self.ContactsForWAS:
             self.ContactsForWAS[QsoSPC] = (QsoSPC, QsoDate, QsoCallSign)
 
-        # WAS
+        # WAS_C
         if QsoDate >= '20110612000000':
           if TheirC_Date and QsoDate >= TheirC_Date:
             if QsoSPC not in self.ContactsForWAS_C:
               self.ContactsForWAS_C[QsoSPC] = (QsoSPC, QsoDate, QsoCallSign)
+
+        # WAS_T
+        if QsoDate >= '20160201000000':
+          if TheirT_Date and QsoDate >= TheirT_Date:
+            if QsoSPC not in self.ContactsForWAS_T:
+              self.ContactsForWAS_T[QsoSPC] = (QsoSPC, QsoDate, QsoCallSign)
+
+        # WAS_S
+        if QsoDate >= '20160201000000':
+          if TheirS_Date and QsoDate >= TheirS_Date:
+            if QsoSPC not in self.ContactsForWAS_S:
+              self.ContactsForWAS_S[QsoSPC] = (QsoSPC, QsoDate, QsoCallSign)
 
     def AwardP(QSOs):
       PrefixList = QSOs.values()
@@ -1246,6 +1292,8 @@ class cQSO(cStateMachine):
     AwardCTS('S',     self.ContactsForS)
     AwardWAS('WAS',   self.ContactsForWAS)
     AwardWAS('WAS-C', self.ContactsForWAS_C)
+    AwardWAS('WAS-T', self.ContactsForWAS_T)
+    AwardWAS('WAS-S', self.ContactsForWAS_S)
 
     AwardP(self.ContactsForP)
     TrackBRAG(self.Brag)
@@ -1518,6 +1566,8 @@ class cSKCC:
 
     self.WasLevel       = cSKCC.ReadRoster('WAS',   'operating_awards/was/was_roster.php')
     self.WasCLevel      = cSKCC.ReadRoster('WAS-C', 'operating_awards/was-c/was-c_roster.php')
+    self.WasTLevel      = cSKCC.ReadRoster('WAS-T', 'operating_awards/was-t/was-t_roster.php')
+    self.WasSLevel      = cSKCC.ReadRoster('WAS-S', 'operating_awards/was-s/was-s_roster.php')
     self.PrefixLevel    = cSKCC.ReadRoster('PFX',   'operating_awards/pfx/prefix_roster.php')
 
   @staticmethod
@@ -1964,7 +2014,7 @@ def FileCheck(Filename):
 # Main
 # 
 
-VERSION = '3.5.10'
+VERSION = '3.5.11'
 
 print('SKCC Skimmer Version {}\n'.format(VERSION))
 
@@ -2184,7 +2234,7 @@ if not ADI_FILE:
   print('')
   Usage()
 
-GOALS   = Parse(GOALS,   'C CXN T TXN S SXN WAS WAS-C P BRAG', 'goal')
+GOALS   = Parse(GOALS,   'C CXN T TXN S SXN WAS WAS-C WAS-T WAS-S P BRAG', 'goal')
 TARGETS = Parse(TARGETS, 'C CXN T TXN S SXN',                  'target')
 BANDS   = [int(Band) for Band in SplitCommaSpace(BANDS)]
 
